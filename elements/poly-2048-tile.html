@@ -1,0 +1,61 @@
+<link rel="import" href="../../polymer/polymer.html">
+
+<dom-module id="poly-2048-tile">
+  <style>
+  :host {
+    text-align: center;
+    font-weight: bold;
+    font-size: 55px;
+    line-height: 110px;
+    position: absolute;
+    width: 109px;
+    height: 109px;
+    border-radius: 3px;
+    z-index: 0;
+    -webkit-transition: 180ms ease-in-out;
+    -webkit-transition-property: -webkit-transform;
+    -webkit-animation: appear 200ms ease 100ms;
+    -webkit-animation-fill-mode: backwards;
+  }
+  :host([value="2"]) { background: #eee4da; color: #776e65; }
+  :host([value="4"]) { background: #ede0c8; color: #776e65; }
+  :host([value="8"]) { background: #f2b179; color: #f9f6f2; }
+  :host([value="16"]) { background: #f59563; color: #f9f6f2; }
+  :host([value="32"]) { background: #f67c5f; color: #f9f6f2; }
+  :host([value="64"]) { background: #f65e3b; color: #f9f6f2; }
+  :host([value="128"]) { background: #edcf72; color: #f9f6f2; font-size: 45px; }
+  :host([value="256"]) { background: #edcc61; color: #f9f6f2; font-size: 45px; }
+  :host([value="512"]) { background: #edc850; color: #f9f6f2; font-size: 45px; }
+  :host([value="1024"]) { background: #edc53f; color: #f9f6f2; font-size: 35px; }
+  :host([value="2048"]) { background: #edc22e; color: #f9f6f2; font-size: 35px; }
+  </style>
+
+  <template>{{value}}</template>
+
+</dom-module>
+
+<script>
+(function(global) {
+  'use strict';
+
+  global.Poly2048Tile = Polymer({
+    is: 'poly-2048-tile',
+
+    properties: {
+      value: {
+        type: 'number',
+        value: 0,
+        reflectToAttribute: true,
+      },
+
+    },
+
+    setPosition: function(row, col) {
+      console.log('tile.setPosition');
+      this.style.setProperty('transform',
+        `translate(${19 + col * 127}px, ${19 + row * 127}px)`);
+    },
+
+  });
+})(window);
+</script>

@@ -1,0 +1,322 @@
+<link rel="import" href="../../polymer/polymer.html">
+<link rel="import" href="poly-2048-tile.html">
+
+<dom-module id="poly-2048-game">
+  <style>
+    :host {
+      display: inline-block;
+      position: relative;
+      border-radius: 6px;
+      color: #776e65;
+      font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
+      text-align: left;
+    }
+    :host::shadow {
+      font-size: 18px;
+    }
+    @keyframes move-up {
+      0% {
+        top: 25px;
+        opacity: 1; }
+
+      100% {
+        top: -50px;
+        opacity: 0;
+      }
+    }
+    @keyframes slide-up {
+      0% {
+        margin-top: 100%;
+      }
+      100% {
+        margin-top: 0;
+      }
+    }
+    @keyframes fade-in {
+      0% {
+        opacity: 0;
+      }
+      100% {
+        opacity: 1;
+      }
+    }
+    h1 {
+      font-size: 60px;
+      width: 100%;
+      margin: 0;
+    }
+    #scoreboard, #info {
+      margin: 10px 0;
+      text-align: right;
+    }
+    #score {
+      position: relative;
+      display: inline-block;
+      background: #bbada0;
+      padding: 15px 25px;
+      font-size: 25px;
+      height: 25px;
+      line-height: 47px;
+      font-weight: bold;
+      border-radius: 3px;
+      color: white;
+      margin-top: 8px;
+      text-align: center;
+    }
+    #score:after {
+      content: "Score";
+      position: absolute;
+      width: 100%;
+      top: 10px;
+      left: 0;
+      text-transform: uppercase;
+      font-size: 13px;
+      line-height: 13px;
+      text-align: center;
+      color: #eee4da;
+    }
+    #new-game {
+      font-size: 18px;
+      background: #8f7a66;
+      border-radius: 3px;
+      padding: 0 20px;
+      color: #f9f6f2;
+      height: 40px;
+      line-height: 42px;
+      border: none;
+      -webkit-appearance: none;
+    }
+    #new-game:focus {
+      outline: none;
+    }
+    #container {
+      position: relative;
+    }
+    #game-over {
+      background: rgba(238, 228, 218, 0.73);
+    }
+    #game-won {
+      background: rgba(237, 194, 46, 0.5);
+      color: #f9f6f2;
+    }
+    #game-over, #game-won {
+      display: none;
+      z-index: 10000;
+      padding-top: 40px;
+      text-align: center;
+      animation: fade-in 800ms ease 1200ms;
+      animation: slide-up 1.5s ease-in-out 0s;
+      animation-fill-mode: both;
+      margin: 0;
+    }
+    #tiles, #game-over, #game-won {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+    #grid {
+      display: inline-flex;
+      flex-direction: column;
+      background: #bbada0;
+      padding: 10px;
+      border-radius: 6px;
+    }
+    #grid > div {
+      display: flex;
+    }
+    .cell {
+      width: 107px;
+      height: 107px;
+      margin: 10px;
+      border-radius: 3px;
+      background: rgba(238, 228, 218, 0.35);
+    }
+  </style>
+
+  <template>
+    <h1>&lt;poly-2048&gt;</h1>
+    <div id="scoreboard">
+      <div id="score">{{score}}</div>
+    </div>
+    <div id="info">
+      <button id="new-game" on-click="newGame">New Game</button>
+    </div>
+    <div id="container">
+      <div id="game-over">
+        <h1>Game Over!</h1>
+      </div>
+      <div id="game-won">
+        <h1>You Won!</h1>
+      </div>
+      <div id="grid">
+        <template is="x-repeat" items="{{_cells}}">
+          <div>
+            <template is="x-repeat" items="{{item}}">
+              <div class="cell"></div>
+            </template>
+          </div>
+        </template>
+      </div>
+      <div id="tiles"></div>
+    </div>
+  </template>
+
+</dom-module>
+
+<script>
+(function() {
+  'use strict';
+
+  function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min)) + min;
+  }
+
+  Polymer({
+    is: 'poly-2048-game',
+
+    properties: {
+      score: {
+        type: Number,
+        value: 0,
+      },
+      size: {
+        type: Number,
+        value: 4,
+      }
+    },
+
+    listeners: {
+      transitionend: '_onTransitionEnd',
+    },
+
+    attached: function() {
+      window.addEventListener('keydown', this._onKeyDown.bind(this));
+      this.newGame();
+    },
+
+    newGame: function() {
+      this._cells = [];
+      for (let i = 0; i < this.size; i++) {
+        let row = new Array(this.size);
+        this._cells[i] = row;
+        for (let i = 0; i < this.size; i++) {
+          row[i] = {};
+        }
+      }
+      while (this.$.tiles.firstChild !== null) {
+        this.$.tiles.removeChild(this.$.tiles.firstChild);
+      }
+      this.score = 0;
+      this.gameOver = false;
+      this.gameWon = false;
+      this.newTile();
+      this.newTile();
+    },
+
+    newTile: function() {
+      var tiles = this.$.tiles;
+      console.assert(tiles.children.length < this.size * this.size);
+      while (true) {
+        let row = getRandomInt(0, this.size);
+        let col = getRandomInt(0, this.size);
+        let cell = this._getCell(0, row, col);
+
+        if (!(this._getCell(0, row, col) instanceof Poly2048Tile)) {
+          let value = Math.random() < 0.9 ? 2 : 4;
+          let tile = document.createElement('poly-2048-tile');
+          tile.value = value;
+          this._setCell(0, row, col, tile);
+          tiles.appendChild(tile);
+          tile.setPosition(row, col);
+          break;
+        }
+      }
+      if (tiles.children.length === this.size * this.size) {
+        this.gameOver = isGameOver();
+      }
+    },
+
+    _onKeyDown: function(e) {
+      let dir = e.keyCode - 37;
+      if (!(dir >= 0 && dir <= 3)) return;
+
+      let moved = false;
+
+      for (let i = 0; i < this.size; i++) {
+        let spacesToMove = 0;
+        let previousTile = null;
+
+        for (let j = 0; j < this.size; j++) {
+          let tile = this._getCell(dir, i, j);
+          if (!(tile instanceof Poly2048Tile)) {
+            spacesToMove++;
+          } else {
+            let merge = previousTile !== null && previousTile.value === tile.value;
+            if (merge) {
+              spacesToMove++;
+              previousTile.style.setProperty('z-index', '100');
+            }
+            if (spacesToMove > 0) {
+              console.assert(this._getCell(dir, i, j) == tile);
+              let newJ = j - spacesToMove;
+              this._setCell(dir, i, j, {});
+              this._setCell(dir, i, newJ, tile);
+              tile.setPosition(
+                  this._getRow(dir, i, newJ),
+                  this._getCol(dir, i, newJ));
+              moved = true;
+              this._isMoving = true;
+            }
+            if (merge) {
+              tile.mergedTile = previousTile;
+              previousTile = null;
+            } else {
+              previousTile = tile;
+            }
+          }
+        }
+      }
+    },
+
+    _onTransitionEnd: function(e) {
+      let tile = e.target;
+
+      if (tile.mergedTile) {
+        tile.value *= 2;
+        this.score += tile.value;
+        tile.mergedTile.remove();
+        tile.mergedTile = null;
+        if (tile.value == 2048) {
+          this.gameWon = true;
+        }
+      }
+
+      if (this._isMoving) {
+        this.newTile();
+        this._isMoving = false;
+      }
+    },
+
+    _getCell: function(dir, i, j) {
+      return this._cells[this._getRow(dir, i, j)][this._getCol(dir, i, j)];
+    },
+
+    _setCell: function(dir, i, j, v) {
+      this._cells[this._getRow(dir, i, j)][this._getCol(dir, i, j)] = v;
+    },
+
+    _getRow: function(d, i, j) {
+      return (d == 0) ? i : (d == 1) ? j :
+          (d == 2) ? this.size - i - 1 : this.size - j - 1;
+    },
+
+    _getCol: function(d, i, j) {
+      return (d == 0) ? j : (d == 1) ? i :
+          (d == 2) ? this.size - j - 1 : this.size - i - 1;
+    },
+
+  });
+})();
+</script>
